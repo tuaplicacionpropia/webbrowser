@@ -28,7 +28,7 @@ setup(
     license='MIT',
     install_requires=[
         'autopy==0.51',
-        'requests==2.18.4',
+        'requests==2.20.0',
         'selenium==3.11.0',
         'clipboard==0.0.4',
         'rarfile==3.0',
