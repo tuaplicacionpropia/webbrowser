@@ -1,0 +1,15 @@
+include README.rst
+include webbrowser/*.svd
+include webbrowser/images/*.jpg
+include webbrowser/faces/*
+
+include webbrowser/clips/backgrounds/*.svg
+include webbrowser/clips/borders/*.svg
+include webbrowser/clips/decorators/*.svg
+include webbrowser/clips/headers/*.svg
+include webbrowser/clips/misc/*.svg
+include webbrowser/clips/schools/*.svg
+include webbrowser/clips/students/*.svg
+include webbrowser/clips/teachers/*.svg
+include webbrowser/clips/*.svg
+
