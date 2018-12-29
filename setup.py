@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='sbrowser',
-    version='0.0.7',
+    version='0.0.9',
     url='https://github.com/tuaplicacionpropia/webbrowser',
     download_url='https://github.com/tuaplicacionpropia/webbrowser/archive/master.zip',
     author=u'tuaplicacionpropia.com',
@@ -20,7 +20,7 @@ setup(
       'Intended Audience :: Developers', 
       'Topic :: Multimedia :: Graphics',
     ],
-    scripts=['bin/sbrowser', 'bin/sbrowser.cmd',],
+    scripts=['bin/sbrowser', 'bin/sbrowser.cmd', 'bin/fullscreenshot', 'bin/fullscreenshot.cmd',],
     packages=find_packages(exclude=['tests']),
     zip_safe=False,
     include_package_data=True,

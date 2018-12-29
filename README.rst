@@ -12,6 +12,11 @@ http://python-packaging.readthedocs.io/en/latest/index.html
 Python library for automate web browser
 
 To update pypi
+git add .
+git commit -m "7th commit"
+git push -u origin master
+
+
 python2.7 setup.py sdist bdist_wheel
 twine upload dist/*
 
@@ -30,6 +35,17 @@ Getting started with the library
     python -c "import sys; from text2img import SvgManager; SvgManager.generate(sys.argv)" /home/jmramoss/almacen/ORLAS/text2img/text2img/base2.svd
     python -c "import sys; import svgmanager; svgmanager.SvgManager.generate(sys.argv)" /home/jmramoss/almacen/ORLAS/text2img/text2img/base.svd /home/jmramoss/almacen/ORLAS/text2img/text2img/themes.svd /home/jmramoss/text2img_output/clips
     sudo pip install --upgrade text2img
+
+
+
+sudo pip2.7 install sbrowser==0.0.8
+python2.7
+>>> import sbrowser
+>>> b = sbrowser.Browser()
+>>> b.openUrl("http://www.idecnet.com")
+>>> b.maximize()
+
+
 
 Every resource exposes the following **methods**:
 

@@ -6,10 +6,10 @@ Usage::
 
 """
 import sys
-from sbrowser import SvgManager
+import sbrowser
 import pkg_resources  # part of setuptools
 
-HELP="""text2img, the Human JSON.
+HELP="""sbrowser, automate web browser.
 
 Usage:
   webbrowser [options]
@@ -25,28 +25,20 @@ Options:
 """;
 
 def showerr(msg):
-    sys.stderr.write(msg)
-    sys.stderr.write("\n")
+  sys.stderr.write(msg)
+  sys.stderr.write("\n")
 
 def main():
-    args = []
-    for arg in sys.argv[1:]:
-        if arg == '-h' or arg == '--help':
-            showerr(HELP)
-            return
-        elif arg == '-j': format = 'json'
-        elif arg == '-c': format = 'compact'
-        elif arg == '-V' or arg == '--version':
-            showerr('Hjson ' + pkg_resources.require("Hjson")[0].version)
-            return
+  print("len = " + str(len(sys.argv)))
+  print("args = " + str(sys.argv))
 
-        elif arg[0] == '-':
-            showerr(HELP)
-            raise SystemExit('unknown option ' + arg)
-        else:
-            args.append(arg)
+  #getattr(sys.modules[__name__], sys.method_name)(*args)
 
-    SvgManager.generate(sys.argv)
+def fullscreenshot (args):
+  pass
+
+def screenshot (args):
+  pass
 
 if __name__ == '__main__':
     main()
