@@ -6,6 +6,7 @@ import autopy
 import requests
 import shutil
 import os
+import stat
 import time
 import sys
 import clipboard
@@ -74,6 +75,10 @@ class Browser(object):
     tf = tarfile.open(fileDriver)
     tf.extractall(path=userHome)
 
+    realDriver = userHome + "/geckodriver"
+    st = os.stat(realDriver)
+    os.chmod(realDriver, st.st_mode | stat.S_IEXEC)
+
     pass
 
   def installChromeDriver (self):
@@ -85,6 +90,10 @@ class Browser(object):
 
     tf = zipfile.ZipFile(fileDriver)
     tf.extractall(path=userHome)
+
+    realDriver = userHome + "/chromedriver"
+    st = os.stat(realDriver)
+    os.chmod(realDriver, st.st_mode | stat.S_IEXEC)
 
     pass
 
