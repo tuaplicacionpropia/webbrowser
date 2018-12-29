@@ -83,7 +83,7 @@ class Browser(object):
 
     userHome = os.path.expanduser("~")
 
-    tf = zipfile.open(fileDriver)
+    tf = zipfile.ZipFile(fileDriver)
     tf.extractall(path=userHome)
 
     pass
