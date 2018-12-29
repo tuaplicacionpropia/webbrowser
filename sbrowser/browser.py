@@ -11,6 +11,7 @@ import sys
 import clipboard
 import rarfile
 import tarfile
+import zipfile
 
 from PIL import Image
 
@@ -75,10 +76,22 @@ class Browser(object):
 
     pass
 
+  def installChromeDriver (self):
+    #https://chromedriver.storage.googleapis.com/2.45/chromedriver_linux64.zip
+    urlDriver = "https://chromedriver.storage.googleapis.com/2.45/chromedriver_linux64.zip"
+    fileDriver = self.__download_file__(urlDriver)
+
+    userHome = os.path.expanduser("~")
+
+    tf = zipfile.open(fileDriver)
+    tf.extractall(path=userHome)
+
+    pass
+
   def __getDriverFirefox (self, download=False):
     result = None
     userHome = os.path.expanduser("~")
-    driverPath = user + '/geckodriver'
+    driverPath = userHome + '/geckodriver'
     if not os.path.isfile(driverPath) and download:
       self.installFirefoxDriver()
     if os.path.isfile(driverPath):
@@ -88,7 +101,7 @@ class Browser(object):
   def __getDriverChrome (self, download=False):
     result = None
     userHome = os.path.expanduser("~")
-    driverPath = user + '/chromedriver'
+    driverPath = userHome + '/chromedriver'
     if not os.path.isfile(driverPath) and download:
       self.installChromeDriver()
     if os.path.isfile(driverPath):
@@ -98,8 +111,8 @@ class Browser(object):
   def openUrl (self, start=None, autoSave=None, downloadDir=None, profile=None):
     userHome = os.path.expanduser("~")
 
-    chromeDriverPath = user + '/chromedriver'
-    firefoxDriverPath = user + '/geckodriver'
+    chromeDriverPath = userHome + '/chromedriver'
+    firefoxDriverPath = userHome + '/geckodriver'
     
     checkFirefox = False
     checkChrome = False
@@ -681,8 +694,9 @@ class Browser(object):
     return result
 
   def clickSaveFile (self):
-    self.searchRectangle('/home/jmramoss/selenium/option_save_file.png')
-    self.searchRectangle('/home/jmramoss/selenium/save_dialog.png')
+    userHome = os.path.expanduser("~")
+    self.searchRectangle(userHome + '/option_save_file.png')
+    self.searchRectangle(userHome + '/save_dialog.png')
     return self
 
   def selectFirstWindow (self):
