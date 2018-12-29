@@ -36,7 +36,7 @@ def main():
   #print("len = " + str(len(sys.argv)))
   #print("args = " + str(sys.argv))
   args = []
-  for i in 2..range(len(sys.argv)):
+  for i in range(2, len(sys.argv)):
     args.append(sys.argv[i])
 
   getattr(sys.modules[__name__], sys.argv[1])(args)
