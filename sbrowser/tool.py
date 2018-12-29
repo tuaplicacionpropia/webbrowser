@@ -28,16 +28,25 @@ def showerr(msg):
   sys.stderr.write(msg)
   sys.stderr.write("\n")
 
-def main():
-  print("len = " + str(len(sys.argv)))
-  print("args = " + str(sys.argv))
+#fullscreenshot a b c d
+#len = 6
+#args = ['/media/jmramoss/ALMACEN/pypi/webbrowser/sbrowser/tool.py', 'fullscreenshot', 'a', 'b', 'c', 'd']
 
-  #getattr(sys.modules[__name__], sys.method_name)(*args)
+def main():
+  #print("len = " + str(len(sys.argv)))
+  #print("args = " + str(sys.argv))
+  args = []
+  for i in 2..range(len(sys.argv)):
+    args.append(sys.argv[i])
+
+  getattr(sys.modules[__name__], sys.argv[1])(args)
 
 def fullscreenshot (args):
+  print("executing fullscreenshot " + str(args))
   pass
 
 def screenshot (args):
+  print("executing screenshot " + str(args))
   pass
 
 if __name__ == '__main__':
