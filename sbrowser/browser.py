@@ -10,6 +10,7 @@ import time
 import sys
 import clipboard
 import rarfile
+import tarfile
 
 from PIL import Image
 
@@ -50,26 +51,81 @@ class Browser(object):
     self.driver = driver
     self.params = {}
 
+  def __download_file__(self, url):
+    local_filename = url.split('/')[-1]
+    # NOTE the stream=True parameter
+    r = requests.get(url, stream=True)
+    with open(local_filename, 'wb') as f:
+      for chunk in r.iter_content(chunk_size=1024): 
+        if chunk: # filter out keep-alive new chunks
+          f.write(chunk)
+          #f.flush() commented by recommendation from J.F.Sebastian
+    return local_filename
+
+
+  def installFirefoxDriver (self):
+    #https://github.com/mozilla/geckodriver/releases/download/v0.23.0/geckodriver-v0.23.0-linux64.tar.gz
+    firefoxUrlDriver = "https://github.com/mozilla/geckodriver/releases/download/v0.23.0/geckodriver-v0.23.0-linux64.tar.gz"
+    fileDriver = self.__download_file__(firefoxUrlDriver)
+
+    userHome = os.path.expanduser("~")
+
+    tf = tarfile.open(fileDriver)
+    tf.extractall(path=userHome)
+
+    pass
+
+  def __getDriverFirefox (self, download=False):
+    result = None
+    userHome = os.path.expanduser("~")
+    driverPath = user + '/geckodriver'
+    if not os.path.isfile(driverPath) and download:
+      self.installFirefoxDriver()
+    if os.path.isfile(driverPath):
+      result = driverPath
+    return result
+
+  def __getDriverChrome (self, download=False):
+    result = None
+    userHome = os.path.expanduser("~")
+    driverPath = user + '/chromedriver'
+    if not os.path.isfile(driverPath) and download:
+      self.installChromeDriver()
+    if os.path.isfile(driverPath):
+      result = driverPath
+    return result
+
   def openUrl (self, start=None, autoSave=None, downloadDir=None, profile=None):
-    firefoxDriverPath = '/home/jmramoss/selenium/chromedriver'
-    chromeDriverPath = '/home/jmramoss/selenium/geckodriver'
+    userHome = os.path.expanduser("~")
+
+    chromeDriverPath = user + '/chromedriver'
+    firefoxDriverPath = user + '/geckodriver'
     
     checkFirefox = False
     checkChrome = False
-    if os.path.isfile(firefoxDriverPath):
-      checkFirefox = True
-    elif os.path.isfile(chromeDriverPath):
+    if os.path.isfile(chromeDriverPath):
       checkChrome = True
+    elif os.path.isfile(firefoxDriverPath):
+      checkFirefox = True
+
+    if not checkChrome and not checkFirefox:
+      driverPath = self.__getDriverChrome(download=True)
+      if os.path.isfile(driverPath):
+        checkChrome = True
+      else:
+        driverPath = self.__getDriverFirefox(download=True)
+        if os.path.isfile(driverPath):
+          checkFirefox = True
     
-    if checkFirefox:
-      self.openFirefox(start, autoSave, downloadDir, profile)
-    elif checkChrome:
+    if checkChrome:
       self.openChrome(start, autoSave, downloadDir)
+    elif checkFirefox:
+      self.openFirefox(start, autoSave, downloadDir, profile)
 
     return self
 
   def openFirefox (self, start=None, autoSave=None, downloadDir=None, profile=None):
-    driverPath = '/media/jmramoss/ALMACEN/bettenis/geckodriver'
+    driverPath = self.__getDriverFirefox(download=True)
     
     if downloadDir is None:
       downloadDir = tempfile.mkdtemp(prefix='.download_')
@@ -127,7 +183,8 @@ class Browser(object):
     return self
 
   def openChrome (self, start=None, autoSave=None, downloadDir=None):
-    driver_path = '/media/jmramoss/ALMACEN/bettenis/chromedriver'
+    driver_path = self.__getDriverChrome(download=True)
+
     os.environ["webdriver.chrome.driver"] = driver_path
 
     if downloadDir is None:
