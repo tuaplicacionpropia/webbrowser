@@ -1,4 +1,4 @@
-webbrowser |License MIT|
+sbrowser |License MIT|
 ==========================
 
 http://python-packaging.readthedocs.io/en/latest/index.html
@@ -10,6 +10,11 @@ http://python-packaging.readthedocs.io/en/latest/index.html
    :target: https://badge.fury.io/py/text2img
 
 Python library for automate web browser
+
+To update pypi
+python2.7 setup.py sdist bdist_wheel
+twine upload dist/*
+
 
 Getting started with the library
 --------------------------------

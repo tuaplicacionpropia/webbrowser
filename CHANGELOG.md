@@ -1,4 +1,4 @@
-# webbrowser - Python library for automate web browser
+# sbrowser - Python library for automate web browser
 
 ## CHANGELOG
 

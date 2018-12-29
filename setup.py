@@ -3,7 +3,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='webbrowser',
+    name='sbrowser',
     version='0.0.1',
     url='https://github.com/tuaplicacionpropia/webbrowser',
     download_url='https://github.com/tuaplicacionpropia/webbrowser/archive/master.zip',
@@ -20,7 +20,7 @@ setup(
       'Intended Audience :: Developers', 
       'Topic :: Multimedia :: Graphics',
     ],
-    scripts=['bin/webbrowser', 'bin/webbrowser.cmd',],
+    scripts=['bin/sbrowser', 'bin/sbrowser.cmd',],
     packages=find_packages(exclude=['tests']),
     zip_safe=False,
     include_package_data=True,

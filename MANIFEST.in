@@ -1,15 +1,15 @@
 include README.rst
-include webbrowser/*.svd
-include webbrowser/images/*.jpg
-include webbrowser/faces/*
+include sbrowser/*.svd
+include sbrowser/images/*.jpg
+include sbrowser/faces/*
 
-include webbrowser/clips/backgrounds/*.svg
-include webbrowser/clips/borders/*.svg
-include webbrowser/clips/decorators/*.svg
-include webbrowser/clips/headers/*.svg
-include webbrowser/clips/misc/*.svg
-include webbrowser/clips/schools/*.svg
-include webbrowser/clips/students/*.svg
-include webbrowser/clips/teachers/*.svg
-include webbrowser/clips/*.svg
+include sbrowser/clips/backgrounds/*.svg
+include sbrowser/clips/borders/*.svg
+include sbrowser/clips/decorators/*.svg
+include sbrowser/clips/headers/*.svg
+include sbrowser/clips/misc/*.svg
+include sbrowser/clips/schools/*.svg
+include sbrowser/clips/students/*.svg
+include sbrowser/clips/teachers/*.svg
+include sbrowser/clips/*.svg
 

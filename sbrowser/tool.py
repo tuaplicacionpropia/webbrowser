@@ -6,7 +6,7 @@ Usage::
 
 """
 import sys
-from webbrowser import SvgManager
+from sbrowser import SvgManager
 import pkg_resources  # part of setuptools
 
 HELP="""text2img, the Human JSON.
