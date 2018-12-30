@@ -668,17 +668,20 @@ class Browser(object):
 
   def scrollToBottomStepByStep (self, step=1000, wait=0.3):
     prevScroll = None
-    while True:
-      scroll = self.scrollBy(0, step)
-      gobreak = True
-      gobreak = gobreak and prevScroll is not None
-      gobreak = gobreak and scroll is not None
-      gobreak = gobreak and prevScroll[1] == scroll[1]
-      gobreak = gobreak and prevScroll[0] == scroll[0]
-      if gobreak:
-        break
-      prevScroll = scroll
-      self.wait(wait)
+    numTry = 5
+    for i in range(numTry):
+      while True:
+        scroll = self.scrollBy(0, step)
+        gobreak = True
+        gobreak = gobreak and prevScroll is not None
+        gobreak = gobreak and scroll is not None
+        gobreak = gobreak and prevScroll[1] == scroll[1]
+        gobreak = gobreak and prevScroll[0] == scroll[0]
+        if gobreak:
+          break
+        prevScroll = scroll
+        self.wait(wait)
+      self.wait(wait*10)
 
 
   def fullscreenshot(self, target=None):

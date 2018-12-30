@@ -53,6 +53,12 @@ def fullscreenshot (args):
 
 def screenshot (args):
   print("executing screenshot " + str(args))
+  url = args[0]
+  target = None if len(args) <= 1 else args[1]
+  browser = sbrowser.Browser()
+  browser.openUrl(url).maximize()
+  browser.screenshot(target)
+  browser.close()
   pass
 
 if __name__ == '__main__':
