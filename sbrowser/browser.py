@@ -137,7 +137,7 @@ class Browser(object):
   def popPivot (self):
     self.pivots.pop()
 
-  def openUrl (self, start=None, autoSave=None, downloadDir=None, profile=None):
+  def openUrl (self, start=None, autoSave=None, downloadDir=None, profile=None, waitUntilLoad=True):
     if self.driver is None:
       userHome = os.path.expanduser("~")
 

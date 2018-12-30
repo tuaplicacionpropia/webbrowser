@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='sbrowser',
-    version='0.0.14',
+    version='0.0.15',
     url='https://github.com/tuaplicacionpropia/webbrowser',
     download_url='https://github.com/tuaplicacionpropia/webbrowser/archive/master.zip',
     author=u'tuaplicacionpropia.com',
