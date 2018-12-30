@@ -13,6 +13,12 @@ import clipboard
 import rarfile
 import tarfile
 import zipfile
+import codecs
+import hjson
+import numpy as np
+import datetime
+import utils
+
 
 from PIL import Image
 
@@ -26,6 +32,9 @@ import pyscreenshot
 import cv2
 import tempfile
 
+BROWSER_TIMEOUT = 30
+BROWSER_MINIMIZE = False
+
 #click problem
 #https://stackoverflow.com/questions/11908249/debugging-element-is-not-clickable-at-point-error
 #https://peter.sh/experiments/chromium-command-line-switches/#disable-popup-blocking
@@ -35,6 +44,9 @@ import tempfile
 #https://stackoverflow.com/questions/23530399/chrome-web-driver-download-files
 #https://stackoverflow.com/questions/18439851/how-can-i-download-a-file-on-a-click-event-using-selenium
 #https://stackoverflow.com/questions/32205245/need-the-chrome-equivalent-of-these-firefox-browser-profile-settings-in-seleni
+
+#Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.87 Safari/537.36
+
 
 '''
 https://www.lectulandia.com/
@@ -51,7 +63,9 @@ class Browser(object):
 
   def __init__ (self, driver=None):
     self.driver = driver
+    self.pivots = list()
     self.params = {}
+    self.currentPage = None
 
   def __download_file__(self, url):
     local_filename = url.split('/')[-1]
@@ -117,45 +131,66 @@ class Browser(object):
       result = driverPath
     return result
 
+  def pushPivot (self, pivot):
+    self.pivots.append(pivot)
+    
+  def popPivot (self):
+    self.pivots.pop()
+
   def openUrl (self, start=None, autoSave=None, downloadDir=None, profile=None):
-    userHome = os.path.expanduser("~")
+    if self.driver is None:
+      userHome = os.path.expanduser("~")
 
-    chromeDriverPath = userHome + '/chromedriver'
-    firefoxDriverPath = userHome + '/geckodriver'
+      chromeDriverPath = userHome + '/chromedriver'
+      firefoxDriverPath = userHome + '/geckodriver'
     
-    checkFirefox = False
-    checkChrome = False
-    if os.path.isfile(chromeDriverPath):
-      checkChrome = True
-    elif os.path.isfile(firefoxDriverPath):
-      checkFirefox = True
-
-    if not checkChrome and not checkFirefox:
-      driverPath = self.__getDriverChrome(download=True)
-      if os.path.isfile(driverPath):
+      checkFirefox = False
+      checkChrome = False
+      if os.path.isfile(chromeDriverPath):
         checkChrome = True
-      else:
-        driverPath = self.__getDriverFirefox(download=True)
+      elif os.path.isfile(firefoxDriverPath):
+        checkFirefox = True
+
+      if not checkChrome and not checkFirefox:
+        driverPath = self.__getDriverChrome(download=True)
         if os.path.isfile(driverPath):
-          checkFirefox = True
+          checkChrome = True
+        else:
+          driverPath = self.__getDriverFirefox(download=True)
+          if os.path.isfile(driverPath):
+            checkFirefox = True
     
-    if checkChrome:
-      self.openChrome(start, autoSave, downloadDir)
-    elif checkFirefox:
-      self.openFirefox(start, autoSave, downloadDir, profile)
+      if checkChrome:
+        self.openChrome(start, autoSave, downloadDir)
+      elif checkFirefox:
+        self.openFirefox(start, autoSave, downloadDir, profile)
+    else:
+      if BROWSER_MINIMIZE:
+        self.driver.minimize_window()
+      self.driver.get(start)
+
+    if waitUntilLoad:
+      self.waitUntilFirstLoad()
 
     return self
 
+  #https://support.mozilla.org/es/questions/1066799
+  #about:config
+  #  browser.link.open_newwindow.restriction
+  #     0
   def openFirefox (self, start=None, autoSave=None, downloadDir=None, profile=None):
     driverPath = self.__getDriverFirefox(download=True)
     
-    if downloadDir is None:
-      downloadDir = tempfile.mkdtemp(prefix='.download_')
+    #if downloadDir is None:
+    #  downloadDir = tempfile.mkdtemp(prefix='.download_')
 
     options = None
     options = FirefoxOptions()
     options.add_argument("--disable-popup-blocking")
     options.add_argument('--ignore-certificate-errors')
+    options.add_argument('--marionette')
+    #options.add_argument("-headless")
+    '''
     if autoSave != None or downloadDir != None:
       options.set_preference("browser.download.folderList",2)
       options.set_preference("browser.download.manager.showWhenStarting", False)
@@ -168,11 +203,28 @@ class Browser(object):
         options.set_preference("browser.helperApps.neverAsk.saveToDisk", autoSave)
       #options.set_preference("http.response.timeout", 5)
       #options.set_preference("dom.max_script_run_time", 5)        
-    
+    '''
+
     fp = None
     if profile != None:
       #profile = '/home/jmramoss/.mozilla/firefox/wp4th1of.default'
       fp = webdriver.FirefoxProfile(profile)
+    else:
+      #fp = webdriver.FirefoxProfile()
+      fp = webdriver.FirefoxProfile('/home/jmramoss/.mozilla/firefox/wp4th1of.default')
+
+    #fp = webdriver.FirefoxProfile('/home/jmramoss/.mozilla/firefox/wp4th1of.default')
+    fp.set_preference("general.useragent.override", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.87 Safari/537.36")
+
+    #fp.DEFAULT_PREFERENCES['frozen']["browser.link.open_newwindow.restriction"] = "0"
+    #fp.set_preference("browser.link.open_newwindow.restriction", "0")
+
+    #profile
+    #/home/jmramoss/.mozilla/firefox/wp4th1of.default
+
+
+    #Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.87 Safari/537.36
+    #Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:61.0) Gecko/20100101 Firefox/61.0
 
     if fp != None and (autoSave != None or downloadDir != None):
       fp.set_preference("browser.download.folderList", 2)
@@ -193,11 +245,14 @@ class Browser(object):
     self.driver = driver
     
     if start != None:
-      driver.set_page_load_timeout(30)
+      driver.set_page_load_timeout(BROWSER_TIMEOUT)
       try:
+        if BROWSER_MINIMIZE:
+          driver.minimize_window()
         driver.get(start)
       except:
-        print("timeout")
+        pass
+        #print(u"timeout")
 
     if downloadDir != None:
       self.set_param("browser.download.dir", downloadDir)
@@ -215,6 +270,7 @@ class Browser(object):
     options = ChromeOptions()
     options.add_argument("--disable-popup-blocking")
     options.add_argument('--ignore-certificate-errors')
+    options.add_argument("user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.87 Safari/537.36")
 
     if False and (autoSave != None or downloadDir != None):
       options.add_option("browser.download.folderList",2)
@@ -234,7 +290,9 @@ class Browser(object):
     self.driver = driver
 
     if start != None:
-      driver.set_page_load_timeout(30)
+      driver.set_page_load_timeout(BROWSER_TIMEOUT)
+      if BROWSER_MINIMIZE:
+        driver.minimize_window()
       driver.get(start)
 
     if downloadDir != None:
@@ -328,7 +386,7 @@ class Browser(object):
   def getNumWindows (self):
     result = 0
     result = len(self.driver.window_handles)
-    print("numWindows = " + str(result))
+    #print(u"numWindows = " + str(result))
     return result
 
   def closeLastWindow (self):
@@ -336,7 +394,15 @@ class Browser(object):
     self.closeWindow(numWindows - 1)
     return self
 
+  def hideWindow (self):
+    self.driver.set_window_position(-200, 0)
+
+  def showWindow (self):
+    self.driver.set_window_position(0, 0)
+
   def closeTab (self):
+    #elem = self.driver.find_element_by_tag_name("body")
+    #elem.send_keys(Keys.CONTROL+"w")
     ActionChains(self.driver).key_down(Keys.CONTROL).send_keys('w').key_up(Keys.CONTROL).perform()
     self.wait(2)
     return self
@@ -367,7 +433,8 @@ class Browser(object):
     return self
 
   def close (self):
-    self.driver.quit()
+    if self.driver:
+      self.driver.quit()
     return self
 
   def saveAsContext (self, element):
@@ -414,6 +481,13 @@ class Browser(object):
       result.append(item)
     return result
 
+  def processItems (self, element, fn):
+    elements = self.driver.find_elements_by_xpath(element)
+    #print("collection '" + element + "' len = " + str(len(elements)))
+    for element in elements:
+      args = [self, element]
+      fn(*args)
+
   def get_text (self, element):
     result = ""
     array = self.collect(element, "innerText")
@@ -453,11 +527,20 @@ class Browser(object):
       result = False
     return result
 
+  def tryElement (self, element):
+    result = None
+    try:
+      result = self._element(element)
+    except:
+      result = None
+    return result
+
   def _element (self, element):
     result = None
+    ref, element = self._refFind(element)
     result = element
-    if type(element) == type(""):
-      result = self.driver.find_element_by_xpath(element)
+    if type(element) == type("") or type(element) == type(u""):
+      result = ref.find_element_by_xpath(element)
     return result
 
   def debugHtml (self, element):
@@ -469,7 +552,6 @@ class Browser(object):
 
   def attr (self, element, name):
     result = None
-    element = None
     try:
       element = self._element(element)
     except:
@@ -494,14 +576,25 @@ class Browser(object):
     return result
 
   def scrollTo (self, element):
-    element = self._element(element)
-    self.driver.execute_script("arguments[0].scrollIntoView();", element)
+    #element = self._element(element)
+    #self.driver.execute_script("arguments[0].scrollIntoView();", element)
+    domelement = self._element(element)
+    js = ""
+    numTry = 5
+    while numTry > 0:
+      try:
+        numTry -= 1
+        self.driver.execute_script("arguments[0]." + js + "scrollIntoView();", domelement)
+        break
+      except:
+        js += "parentNode."
+    return self
 
   #http://internetculture.ovh/assets/biblioteca/Bevilacqua2.epub
   def downloadUrl(self, url, filename=None):
     result = None
     #url = element.get_attribute("href")
-    print("downloading url = " + url)
+    #print(u"downloading url = " + url)
     target = filename
     if filename == None:
       filename = url[url.rfind('/')+1:]
@@ -514,6 +607,18 @@ class Browser(object):
     del response
     result = target
     return result
+
+  def back (self):
+    self.driver.back()
+    return self
+ 
+  def forward (self):
+    self.driver.forward()
+    return self
+ 
+  def refresh (self): 
+    self.driver.refresh()
+    return self
 
   def maximize (self):
     self.driver.maximize_window()
@@ -537,16 +642,58 @@ class Browser(object):
     result = target
     return result
 
+  def scroll2Top (self):
+    total_width = self.driver.execute_script("return document.body.offsetWidth")
+    total_height = self.driver.execute_script("return document.body.parentNode.scrollHeight")
+    viewport_width = self.driver.execute_script("return document.body.clientWidth")
+    viewport_height = self.driver.execute_script("return window.innerHeight")
+    #self.driver.execute_script("window.scrollTo({0}, {1})".format(rectangle[0], rectangle[1]))
+    pass
+  
+  def scroll2Bottom (self):
+    total_width = self.driver.execute_script("return document.body.offsetWidth")
+    total_height = self.driver.execute_script("return document.body.parentNode.scrollHeight")
+    viewport_width = self.driver.execute_script("return document.body.clientWidth")
+    viewport_height = self.driver.execute_script("return window.innerHeight")
+    #self.driver.execute_script("window.scrollTo({0}, {1})".format(rectangle[0], rectangle[1]))
+    pass
+
+  def scrollBy (self, x, y):
+    result = None
+    self.driver.execute_script("window.scrollBy({0}, {1})".format(x, y))
+    scrollX = self.driver.execute_script("return window.scrollX")
+    scrollY = self.driver.execute_script("return window.scrollY")
+    result = [scrollX, scrollY]
+    return result
+
+  def scrollToBottomStepByStep (self, step=1000, wait=0.3):
+    prevScroll = None
+    while True:
+      scroll = self.scrollBy(0, step)
+      gobreak = True
+      gobreak = gobreak and prevScroll is not None
+      gobreak = gobreak and scroll is not None
+      gobreak = gobreak and prevScroll[1] == scroll[1]
+      gobreak = gobreak and prevScroll[0] == scroll[0]
+      if gobreak:
+        break
+      prevScroll = scroll
+      self.wait(wait)
+
 
   def fullscreenshot(self, target=None):
-    print("Starting chrome full page screenshot workaround ...")
+    #print(u"Starting chrome full page screenshot workaround ...")
 
+    #currentScrollLeft = self.driver.execute_script("return window.scrollLeft")
+    #currentScrollTop = self.driver.execute_script("return window.scrollTop")
+
+    self.driver.execute_script("window.scrollTo({0}, {1})".format(0, 0))
 
     total_width = self.driver.execute_script("return document.body.offsetWidth")
     total_height = self.driver.execute_script("return document.body.parentNode.scrollHeight")
     viewport_width = self.driver.execute_script("return document.body.clientWidth")
     viewport_height = self.driver.execute_script("return window.innerHeight")
-    print("Total: ({0}, {1}), Viewport: ({2},{3})".format(total_width, total_height,viewport_width,viewport_height))
+    #print(u"Total: ({0}, {1}), Viewport: ({2},{3})".format(total_width, total_height,viewport_width,viewport_height))
     rectangles = []
 
     i = 0
@@ -563,7 +710,7 @@ class Browser(object):
         if top_width > total_width:
           top_width = total_width
 
-        print("Appending rectangle ({0},{1},{2},{3})".format(ii, i, top_width, top_height))
+        #print(u"Appending rectangle ({0},{1},{2},{3})".format(ii, i, top_width, top_height))
         rectangles.append((ii, i, top_width,top_height))
 
         ii = ii + viewport_width
@@ -577,11 +724,11 @@ class Browser(object):
     for rectangle in rectangles:
       if not previous is None:
         self.driver.execute_script("window.scrollTo({0}, {1})".format(rectangle[0], rectangle[1]))
-        print("Scrolled To ({0},{1})".format(rectangle[0], rectangle[1]))
+        #print(u"Scrolled To ({0},{1})".format(rectangle[0], rectangle[1]))
         time.sleep(0.2)
 
       file_name = "part_{0}.png".format(part)
-      print("Capturing {0} ...".format(file_name))
+      #print(u"Capturing {0} ...".format(file_name))
 
       self.driver.get_screenshot_as_file(file_name)
       screenshot = Image.open(file_name)
@@ -591,7 +738,7 @@ class Browser(object):
       else:
         offset = (rectangle[0], rectangle[1])
 
-      print("Adding to stitched image with offset ({0}, {1})".format(offset[0],offset[1]))
+      #print(u"Adding to stitched image with offset ({0}, {1})".format(offset[0],offset[1]))
       stitched_image.paste(screenshot, offset)
 
       del screenshot
@@ -600,7 +747,11 @@ class Browser(object):
       previous = rectangle
 
     stitched_image.save(target)
-    print("Finishing chrome full page screenshot workaround...")
+    
+    #self.driver.execute_script("window.scrollTo({0}, {1})".format(currentScrollLeft, currentScrollTop))
+    self.driver.execute_script("window.scrollTo({0}, {1})".format(0, 0))
+    
+    #print(u"Finishing chrome full page screenshot workaround...")
     return True
 
   def setInput (self, element, value):
@@ -628,7 +779,7 @@ class Browser(object):
   def _setCheckbox (self, element, value):
     #element.set_attribute('checked', 'true' if value else 'false')
     cmd = "arguments[0].setAttribute('checked', '" + ('true' if value else 'false') + "')"
-    print("cmd = " + str(cmd))
+    #print(u"cmd = " + str(cmd))
     self.driver.execute_script(cmd, element)
     #driver.execute_script("arguments[0].setAttribute('value', arguments[1])", input, 'new value!');    
     return self
@@ -641,7 +792,7 @@ class Browser(object):
       im = pyscreenshot.grab()
       im.save(baseImg)
       im.close()
-      print('screenshot = ' + str(baseImg))
+      #print(u'screenshot = ' + str(baseImg))
     if True:
       # carga imagenes
       cvImgBase = cv2.imread(baseImg)
@@ -654,23 +805,229 @@ class Browser(object):
       topLeft = maxLoc
       botRight = (topLeft[0] + patternWidth, topLeft[1] + patternHeight)
       #autopy.mouse.smooth_move(topLeft[0], topLeft[1])
-      print("topLeft = " + str(topLeft) + " botRight = " + str(botRight))
+      #print(u"topLeft = " + str(topLeft) + u" botRight = " + str(botRight))
     return self
 
   def getDriver (self):
     return self.driver
 
-  def click (self, element):
-    element = self._element(element)
-    element.click()
+  def openNewTab (self, url):
+    #self.driver.send_keys(Keys.CONTROL + 'T')
+
+    #body = self.driver.find_element_by_tag_name("body")
+
+    self.driver.execute_script("window.open('');")
+
+    #actions = ActionChains(self.driver)
+    #actions.move_to_element(body)
+    #actions.key_down(Keys.CONTROL)
+    #actions.key_down('t')
+    #actions.perform()
+    #actions.key_up('t')
+    #actions.key_up(Keys.CONTROL)
+
+    self.selectWindow(len(self.driver.window_handles) - 1)
+    if BROWSER_MINIMIZE:
+      self.driver.minimize_window()
+    self.driver.get(url)
+    return self
+
+  def clickNewWindow (self, element):
+    domelement = self._element(element)
     self.wait(2)
+    
+    #last_height = self.driver.execute_script("return document.body.scrollHeight")
+    #self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+    self.driver.execute_script("arguments[0].scrollIntoView();", domelement)
+    
+    actions = ActionChains(self.driver)
+    actions.move_to_element(domelement)
+    actions.key_down(Keys.CONTROL)
+    actions.click(domelement)
+    actions.perform()
+    self.wait(2)
+    return self
+
+  def showAllPageUrls (self):
+    idx = 0
+    for windows in self.driver.window_handles:
+      #print(u"window idx = " + str(idx) + u" url = " + self.driver.current_url)
+      idx += 1
+
+  def getCurrentUrl (self):
+    return self.driver.current_url
+
+  def selectNewWindow (self, index=0):
+    another_window = list(set(self.driver.window_handles) - {self.driver.current_window_handle})[index]
+    self.driver.switch_to.window(another_window);
+
+  def selectWindow (self, index=0):
+    another_window = self.driver.window_handles[index]
+    self.driver.switch_to.window(another_window);
+
+  def selectNewTab (self):
+    #self.driver.switch_to_window(self.driver.window_handles[1]) #assuming new tab is at index 1
+    self.driver.switch_to.window(self.driver.window_handles[1]) #assuming new tab is at index 1
+    return self
+
+  def selectFirstTab (self):
+    #self.driver.switch_to_window(self.driver.window_handles[0])
+    self.driver.switch_to.window(self.driver.window_handles[0])
+    return self
+
+  def processAll (self, element, fn, *args):
+    elements = self.driver.find_elements_by_xpath(element)
+    idx = 1
+    length = len(elements)
+    for item in elements:
+      listArgs = list()
+      listArgs.extend(args)
+      listArgs.append(item)
+      listArgs.append(idx)
+      listArgs.append(length)
+      fn(*listArgs)
+      idx += 1
+    return self
+
+  def _refFind (self, element):
+    result = [self.driver, element]
+    if type(element) == type(""):
+      #toPrint = u"find element " + element
+      #toPrint = u' '.join((toPrint)).encode('utf-8').strip()
+      #print(toPrint)
+      ref = self.driver
+      numPivots = len(self.pivots)
+      if numPivots > 0:
+        ref = self.pivots[numPivots-1]
+        element = "." + element
+        #print(u"find element from relative " + element)
+      result = [ref, element]
+    return result
+
+  def findSimilar (self, elements, search, attrName='innerText'):
+    result = None
+    search = utils.preSimilar(search)
+    items = self.listElements(elements)
+    currentDistance = 0
+    for item in items:
+      text = self.attr(item, attrName)
+      #self.debugHtml(item)
+      #print("comparing " + search + " with " + attrName + " " + text + ".")
+      text = utils.preSimilar(text)
+      text = utils.reduceSimilarTo(text, search)
+      distance = utils.levenshtein(text, search)
+      #print("comparing " + search + " with " + text + ". Distance = " + str(distance))
+      if result is None or distance < currentDistance:
+        result = item
+        currentDistance = distance
+    return result
+
+  def listElements (self, element):
+    result = None
+    ref, element = self._refFind(element)
+    result = ref.find_elements_by_xpath(element)
+    return result
+
+  def clickAll (self, element):
+    elements = self.listElements(element)
+    for item in elements:
+      self.click(item)
+    return self
+
+  def wait_for(self, condition_function, *args):
+    start_time = time.time()
+    waitTime = 60
+    while time.time() < start_time + waitTime:
+      if condition_function(*args):
+        return True
+      else:
+        time.sleep(0.1)
+    raise Exception('Timeout waiting for {}'.format(condition_function.__name__))
+
+
+  def page_has_state_complete(self):
+    page_state = self.driver.execute_script('return document.readyState;') 
+    return page_state == 'complete'
+
+  def page_has_loaded(self):
+    result = False
+    new_page = self.driver.find_element_by_tag_name('html')
+    if new_page.id != self.currentPage.id:
+      result = True
+      self.currentPage = new_page
+    return result
+
+
+  @staticmethod
+  def clearTmpDir (delayTime=300):
+    if delayTime is None:
+      delayTime = 300
+    dir_path = tempfile.gettempdir() 
+    #print("tmpDir = " + dir_path)
+    directories = utils.listDirectories(dir_path)
+    for entry in directories:
+      oldDir = (utils.getLastModificationAgo(entry) > delayTime)
+      toDelete = oldDir and (os.path.basename(entry).startswith("tmp") and utils.containsDirectory(entry, 'webdriver-py-profilecopy'))
+      toDelete = toDelete or (oldDir and os.path.basename(entry).startswith("rust_mozprofile."))
+      if toDelete and entry.startswith("/tmp/"):
+        print("WARNING!!!!!!!!!!!!!!!!!!!!!!! deleting directory " + entry)
+        shutil.rmtree(entry)
+
+  def waitUntilLoad(self):
+    self.wait_for(self.page_has_loaded)
+    self.wait_for(self.page_has_state_complete)
+    return self
+
+  def page1_has_loaded(self):
+    result = False
+    new_page = self.driver.find_element_by_tag_name('html')
+    if new_page.id is not None:
+      result = True
+      self.currentPage = new_page
+    return result
+
+  def waitUntilFirstLoad(self):
+    #print("waiting")
+    self.wait_for(self.page1_has_loaded)
+    #print("loaded")
+    self.wait_for(self.page_has_state_complete)
+    #print("complete")
+    return self
+
+  def waitExists (self, element):
+    #print("waiting " + element)
+    self.wait_for(self.exists, element)
+    #print("YA waiting " + element)
+    return self
+
+  def click (self, element, wait=True, scroll=True):
+    domelement = self._element(element)
+    if wait:
+      self.wait(2)
+    if scroll:
+      js = ""
+      numTry = 5
+      while numTry > 0:
+        try:
+          numTry -= 1
+          self.driver.execute_script("arguments[0]." + js + "scrollIntoView();", domelement)
+          break
+        except:
+          js += "parentNode."
+    if wait:
+      self.wait(1)
+    domelement.click()
+    if wait:
+      self.wait(2)
     return self
 
   def clickVirtual (self, element):
     element = self._element(element)
+    self.driver.execute_script("arguments[0].scrollIntoView();", element)
+    self.wait(1)
     actions = ActionChains(self.driver)
     actions.move_to_element(element)
-    actions.click()
+    actions.click(element)
     actions.perform()
     self.wait(2)
     return self

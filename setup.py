@@ -34,6 +34,8 @@ setup(
         'rarfile==3.0',
         'Pillow==3.4.2',
         'pyscreenshot==0.4.2',
+        'hjson==2.0.2',
+        'numpy==1.12.0b1',
     ],
 )
 
