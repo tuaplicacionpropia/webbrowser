@@ -18,6 +18,7 @@ import hjson
 import numpy as np
 import datetime
 import utils
+import subprocess
 
 
 from PIL import Image
@@ -66,6 +67,7 @@ class Browser(object):
     self.pivots = list()
     self.params = {}
     self.currentPage = None
+    self.__iDownloadDir__ = None
 
   def __download_file__(self, url):
     local_filename = url.split('/')[-1]
@@ -205,6 +207,10 @@ class Browser(object):
       #options.set_preference("dom.max_script_run_time", 5)        
     '''
 
+    if downloadDir != None:
+      self.set_param("browser.download.dir", downloadDir)
+    
+
     fp = None
     if profile != None:
       #profile = '/home/jmramoss/.mozilla/firefox/wp4th1of.default'
@@ -254,23 +260,51 @@ class Browser(object):
         pass
         #print(u"timeout")
 
-    if downloadDir != None:
-      self.set_param("browser.download.dir", downloadDir)
-    
     return self
+
+  def changeDownloadDir (self, downloadDir):
+    #print("__iDownloadDir__ = " + self.__iDownloadDir__)
+    #print("downloadDir = " + downloadDir)
+    iDownloadDir = self.__iDownloadDir__
+    if os.path.islink(iDownloadDir):
+      os.remove(iDownloadDir)
+    subprocess.call(['ln', '-s', downloadDir, iDownloadDir])
+
+    #self.driver.set_preference("download.default_directory", downloadDir)
+    #self.prefs["download.default_directory"] = downloadDir
+    #self.options.add_experimental_option("prefs",self.prefs)
+
+  def getDefaultDownloadDir (self):
+    result = None
+    home = os.path.expanduser("~")
+    result = os.path.join(home, 'Descargas')
+    return result
 
   def openChrome (self, start=None, autoSave=None, downloadDir=None):
     driver_path = self.__getDriverChrome(download=True)
 
     os.environ["webdriver.chrome.driver"] = driver_path
 
-    if downloadDir is None:
-      downloadDir = tempfile.mkdtemp(prefix='.download_')
+    self.__iDownloadDir__ = tempfile.mkdtemp(prefix='.download_')
+    os.rmdir(self.__iDownloadDir__)
+    iDownloadDir = self.__iDownloadDir__
+
+    self.changeDownloadDir(self.getDefaultDownloadDir())
+
+    #if downloadDir is None:
+    #  downloadDir = tempfile.mkdtemp(prefix='.download_')
 
     options = ChromeOptions()
+    #options.add_argument("--headless")
     options.add_argument("--disable-popup-blocking")
     options.add_argument('--ignore-certificate-errors')
     options.add_argument("user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.87 Safari/537.36")
+
+    prefs = {"download.default_directory": iDownloadDir}
+    options.add_experimental_option("prefs",prefs)
+
+    if downloadDir != None:
+      self.changeDownloadDir(downloadDir)
 
     if False and (autoSave != None or downloadDir != None):
       options.add_option("browser.download.folderList",2)
@@ -1075,4 +1109,3 @@ class Browser(object):
   def wait (self, seconds=5):
     time.sleep(seconds)
     return self
-
