@@ -139,7 +139,7 @@ class Browser(object):
   def popPivot (self):
     self.pivots.pop()
 
-  def openUrl (self, start=None, autoSave=None, downloadDir=None, profile=None, waitUntilLoad=True):
+  def openUrl (self, start=None, autoSave=None, downloadDir=None, profile=None, waitUntilLoad=True, headless=False, runFirefox=False, runChrome=False):
     if self.driver is None:
       userHome = os.path.expanduser("~")
 
@@ -161,11 +161,18 @@ class Browser(object):
           driverPath = self.__getDriverFirefox(download=True)
           if os.path.isfile(driverPath):
             checkFirefox = True
-    
-      if checkChrome:
-        self.openChrome(start, autoSave, downloadDir)
-      elif checkFirefox:
-        self.openFirefox(start, autoSave, downloadDir, profile)
+
+      if runChrome:    
+        if checkChrome:
+          self.openChrome(start, autoSave, downloadDir, headless=headless)
+      elif runFirefox:
+        if checkFirefox:
+          self.openFirefox(start, autoSave, downloadDir, profile, headless=headless)
+      else:
+        if checkChrome:
+          self.openChrome(start, autoSave, downloadDir, headless=headless)
+        elif checkFirefox:
+          self.openFirefox(start, autoSave, downloadDir, profile, headless=headless)
     else:
       if BROWSER_MINIMIZE:
         self.driver.minimize_window()
@@ -180,7 +187,7 @@ class Browser(object):
   #about:config
   #  browser.link.open_newwindow.restriction
   #     0
-  def openFirefox (self, start=None, autoSave=None, downloadDir=None, profile=None):
+  def openFirefox (self, start=None, autoSave=None, downloadDir=None, profile=None, headless=False):
     driverPath = self.__getDriverFirefox(download=True)
     
     #if downloadDir is None:
@@ -191,7 +198,8 @@ class Browser(object):
     options.add_argument("--disable-popup-blocking")
     options.add_argument('--ignore-certificate-errors')
     options.add_argument('--marionette')
-    #options.add_argument("-headless")
+    if headless:
+      options.add_argument("-headless")
     '''
     if autoSave != None or downloadDir != None:
       options.set_preference("browser.download.folderList",2)
@@ -207,8 +215,17 @@ class Browser(object):
       #options.set_preference("dom.max_script_run_time", 5)        
     '''
 
-    if downloadDir != None:
-      self.set_param("browser.download.dir", downloadDir)
+    self.__iDownloadDir__ = tempfile.mkdtemp(prefix='.download_')
+    os.rmdir(self.__iDownloadDir__)
+    iDownloadDir = self.__iDownloadDir__
+
+    if downloadDir is not None:
+      self.changeDownloadDir(downloadDir)
+    else:
+      self.changeDownloadDir(self.getDefaultDownloadDir())
+
+    #if downloadDir != None:
+    self.set_param("browser.download.dir", iDownloadDir)
     
 
     fp = None
@@ -235,9 +252,9 @@ class Browser(object):
     if fp != None and (autoSave != None or downloadDir != None):
       fp.set_preference("browser.download.folderList", 2)
       fp.set_preference("browser.download.manager.showWhenStarting", False)
-      if downloadDir != None:
+      #if downloadDir != None:
         # downloadDir = '/home/jmramoss/Descargas/mocks'
-        fp.set_preference("browser.download.dir", downloadDir)
+      fp.set_preference("browser.download.dir", iDownloadDir)
       if autoSave != None:
         #autoSave = 'application/zip, application/epub+zip'
         fp.set_preference("browser.helperApps.neverAsk.saveToDisk", autoSave)
@@ -280,7 +297,7 @@ class Browser(object):
     result = os.path.join(home, 'Descargas')
     return result
 
-  def openChrome (self, start=None, autoSave=None, downloadDir=None):
+  def openChrome (self, start=None, autoSave=None, downloadDir=None, headless=False):
     driver_path = self.__getDriverChrome(download=True)
 
     os.environ["webdriver.chrome.driver"] = driver_path
@@ -295,7 +312,8 @@ class Browser(object):
     #  downloadDir = tempfile.mkdtemp(prefix='.download_')
 
     options = ChromeOptions()
-    #options.add_argument("--headless")
+    if headless:
+      options.add_argument("--headless")
     options.add_argument("--disable-popup-blocking")
     options.add_argument('--ignore-certificate-errors')
     options.add_argument("user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.87 Safari/537.36")
