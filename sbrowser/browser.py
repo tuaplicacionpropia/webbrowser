@@ -148,19 +148,35 @@ class Browser(object):
     
       checkFirefox = False
       checkChrome = False
-      if os.path.isfile(chromeDriverPath):
-        checkChrome = True
-      elif os.path.isfile(firefoxDriverPath):
-        checkFirefox = True
+      if runChrome:
+        if os.path.isfile(chromeDriverPath):
+          checkChrome = True
+      elif runFirefox:
+        if os.path.isfile(firefoxDriverPath):
+          checkFirefox = True
+      else:
+        if os.path.isfile(chromeDriverPath):
+          checkChrome = True
+        elif os.path.isfile(firefoxDriverPath):
+          checkFirefox = True
 
       if not checkChrome and not checkFirefox:
-        driverPath = self.__getDriverChrome(download=True)
-        if os.path.isfile(driverPath):
-          checkChrome = True
-        else:
+        if runChrome:
+          driverPath = self.__getDriverChrome(download=True)
+          if os.path.isfile(driverPath):
+            checkChrome = True
+        elif runFirefox:
           driverPath = self.__getDriverFirefox(download=True)
           if os.path.isfile(driverPath):
             checkFirefox = True
+        else:
+          driverPath = self.__getDriverChrome(download=True)
+          if os.path.isfile(driverPath):
+            checkChrome = True
+          else:
+            driverPath = self.__getDriverFirefox(download=True)
+            if os.path.isfile(driverPath):
+              checkFirefox = True
 
       if runChrome:    
         if checkChrome:
@@ -227,14 +243,36 @@ class Browser(object):
     #if downloadDir != None:
     self.set_param("browser.download.dir", iDownloadDir)
     
+    mimeType = ""
+    mimeType += "audio/aac, application/x-abiword, application/octet-stream, video/x-msvideo, "
+    mimeType += "application/vnd.amazon.ebook, application/octet-stream, application/x-bzip, "
+    mimeType += "application/x-bzip2, application/x-csh, text/css, text/csv, application/msword, "
+    mimeType += "application/epub+zip, image/gif, text/html, image/x-icon, text/calendar, "
+    mimeType += "application/java-archive, image/jpeg, application/javascript, application/json, "
+    mimeType += "audio/midi, video/mpeg, application/vnd.apple.installer+xml, application/vnd.oasis.opendocument.presentation, "
+    mimeType += "application/vnd.oasis.opendocument.spreadsheet, application/vnd.oasis.opendocument.text, "
+    mimeType += "audio/ogg, video/ogg, application/ogg, application/pdf, application/vnd.ms-powerpoint, "
+    mimeType += "application/x-rar-compressed, application/rtf, application/x-sh, image/svg+xml, "
+    mimeType += "application/x-shockwave-flash, application/x-tar, image/tiff, font/ttf, application/vnd.visio, "
+    mimeType += "audio/x-wav, audio/webm, video/webm, image/webp, font/woff, font/woff2, application/xhtml+xml, "
+    mimeType += "application/vnd.ms-excel, application/xml, application/vnd.mozilla.xul+xml, application/zip, "
+    mimeType += "video/3gpp, audio/3gpp, video/3gpp2, audio/3gpp2, application/x-7z-compressed, "
+    mimeType += "video/mp4, application/mp4"
+
+    options.set_preference("browser.download.folderList",2);
+    options.set_preference("browser.download.manager.showWhenStarting", False);
+    options.set_preference("browser.download.dir",iDownloadDir);
+    #options.set_preference("browser.helperApps.neverAsk.saveToDisk", "application/octet-stream, video/mp4, application/mp4");
+    options.set_preference("browser.helperApps.neverAsk.saveToDisk", mimeType);
 
     fp = None
     if profile != None:
       #profile = '/home/jmramoss/.mozilla/firefox/wp4th1of.default'
       fp = webdriver.FirefoxProfile(profile)
     else:
-      #fp = webdriver.FirefoxProfile()
-      fp = webdriver.FirefoxProfile('/home/jmramoss/.mozilla/firefox/wp4th1of.default')
+      fp = webdriver.FirefoxProfile()
+      #fp = webdriver.FirefoxProfile('/home/jmramoss/.mozilla/firefox/wp4th1of.default')
+      #fp = webdriver.FirefoxProfile('/home/jmramoss/.mozilla/firefox/j8eppwnw.sbrowser')
 
     #fp = webdriver.FirefoxProfile('/home/jmramoss/.mozilla/firefox/wp4th1of.default')
     fp.set_preference("general.useragent.override", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.87 Safari/537.36")
@@ -254,10 +292,18 @@ class Browser(object):
       fp.set_preference("browser.download.manager.showWhenStarting", False)
       #if downloadDir != None:
         # downloadDir = '/home/jmramoss/Descargas/mocks'
-      fp.set_preference("browser.download.dir", iDownloadDir)
       if autoSave != None:
         #autoSave = 'application/zip, application/epub+zip'
         fp.set_preference("browser.helperApps.neverAsk.saveToDisk", autoSave)
+
+    fp.set_preference("browser.preferences.instantApply",True)
+    #fp.set_preference("browser.helperApps.neverAsk.saveToDisk", "text/plain, application/octet-stream, application/binary, text/csv, application/csv, application/excel, text/comma-separated-values, text/xml, application/xml")
+    fp.set_preference("browser.helperApps.neverAsk.saveToDisk", mimeType)
+    fp.set_preference("browser.helperApps.alwaysAsk.force",False)
+    fp.set_preference("browser.download.manager.showWhenStarting",False)
+    #fp.set_preference("browser.download.folderList",0)
+
+    fp.set_preference("browser.download.dir", iDownloadDir)
     
     params = {'executable_path': driverPath}
     if fp != None:
@@ -1071,7 +1117,10 @@ class Browser(object):
           js += "parentNode."
     if wait:
       self.wait(1)
-    domelement.click()
+    try:
+      domelement.click()
+    except:
+      self.driver.execute_script("arguments[0]." + "click();", domelement)
     if wait:
       self.wait(2)
     return self
