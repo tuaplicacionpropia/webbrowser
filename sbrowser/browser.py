@@ -756,20 +756,52 @@ class Browser(object):
     #self.driver.execute_script("window.scrollTo({0}, {1})".format(rectangle[0], rectangle[1]))
     pass
 
-  def scrollBy (self, x, y):
+  def drag2Bottom (self, elem):
+    domelement = self._element(elem)
+
+    inc = 0
+    while True:
+      #previousTop = self.driver.execute_script("return arguments[0].offsetTop", domelement)
+      #print("previous top = " + str(previousTop))
+      inc += 300
+      try:
+        self.drag_and_drop(elem=domelement, yOffset=inc)
+      except:
+        break
+      self.wait(5)
+      #currentTop = self.driver.execute_script("return arguments[0].offsetTop", domelement)
+      #print("current top = " + str(currentTop))
+      #if False and previousTop == currentTop:
+      #  break
+
+  def drag_and_drop (self, elem, xOffset=0, yOffset=0):
+    domelement = self._element(elem)
+    action_chains = ActionChains(self.driver)
+    action_chains.drag_and_drop_by_offset(domelement, xOffset, yOffset).perform()
+
+  def scrollBy (self, x, y, element=None):
     result = None
-    self.driver.execute_script("window.scrollBy({0}, {1})".format(x, y))
-    scrollX = self.driver.execute_script("return window.scrollX")
-    scrollY = self.driver.execute_script("return window.scrollY")
-    result = [scrollX, scrollY]
+
+    if element is None:
+      self.driver.execute_script("window.scrollBy({0}, {1})".format(x, y))
+      scrollX = self.driver.execute_script("return window.scrollX")
+      scrollY = self.driver.execute_script("return window.scrollY")
+      result = [scrollX, scrollY]
+    else:
+      domelement = self._element(element)
+      self.driver.execute_script("arguments[0].scrollBy({0}, {1});".format(x, y), domelement)
+      scrollX = self.driver.execute_script("return arguments[0].scrollX", domelement)
+      scrollY = self.driver.execute_script("return arguments[0].scrollY", domelement)
+      result = [scrollX, scrollY]
+      
     return result
 
-  def scrollToBottomStepByStep (self, step=1000, wait=0.3):
+  def scrollToBottomStepByStep (self, step=1000, wait=0.3, elem=None):
     prevScroll = None
     numTry = 5
     for i in range(numTry):
       while True:
-        scroll = self.scrollBy(0, step)
+        scroll = self.scrollBy(0, step, elem)
         gobreak = True
         gobreak = gobreak and prevScroll is not None
         gobreak = gobreak and scroll is not None
