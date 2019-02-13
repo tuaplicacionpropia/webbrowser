@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='sbrowser',
-    version='0.0.21',
+    version='0.0.22',
     url='https://github.com/tuaplicacionpropia/webbrowser',
     download_url='https://github.com/tuaplicacionpropia/webbrowser/archive/master.zip',
     author=u'tuaplicacionpropia.com',
@@ -27,15 +27,15 @@ setup(
     platforms='any',
     license='MIT',
     install_requires=[
-        'autopy==1.1.1',
-        'requests==2.21.0',
-        'selenium==3.11.0',
-        'clipboard==0.0.4',
-        'rarfile==3.0',
-        'Pillow==3.4.2',
-        'pyscreenshot==0.4.2',
-        'hjson==2.0.2',
-        'numpy==1.12.0b1',
+        'autopy>=1.1.1',
+        'requests>=2.21.0',
+        'selenium>=3.11.0',
+        'clipboard>=0.0.4',
+        'rarfile>=3.0',
+        'Pillow>=3.4.2',
+        'pyscreenshot>=0.4.2',
+        'hjson>=2.0.2',
+        'numpy>=1.12.0b1',
     ],
 )
 
