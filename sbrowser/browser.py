@@ -1009,8 +1009,6 @@ class Browser(object):
     element = self._element(element)
     if element.tag_name == "select":
       self._setSelectInput_(element, value)
-    if element.tag_name == "select":
-      self._setSelectInput_(element, value)
     elif element.tag_name == "input" and element.get_attribute("type") == "checkbox":
       self._setCheckbox(element, value)
     else:
